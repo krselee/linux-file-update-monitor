@@ -13,16 +13,37 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.krselee.beans.FileInfo;
+import com.krselee.utils.ConfUtil;
 import com.krselee.utils.SqlConstants;
 import com.mysql.cj.core.MysqlType;
+import com.mysql.cj.core.util.StringUtils;
 
 /**
+ * 文件监控器
  * 
- * */
+ * @author: krselee
+ * 
+ */
 public class FileMonitor {
+
+	protected static Logger logger;
+
+	private static ConfUtil confUtil = new ConfUtil();
+
+	static {
+		// log4j
+		String customizedPath = "conf/log4j.properties";
+		System.setProperty("log4j.configuration", customizedPath);
+		logger = LogManager.getLogger(FileMonitor.class);
+	}
 
 	/**
 	 * 读取路径文件信息
@@ -52,16 +73,51 @@ public class FileMonitor {
 		return fileInfo;
 	}
 
-	public FileInfo getDbFileInfo(String fileName, Connection conn) throws SQLException {
+	/**
+	 * 查询数据库，获取所有需要监控的词表信息
+	 */
+	public List<FileInfo> getDbFileInfo(Connection conn) throws SQLException {
 		PreparedStatement pst = conn.prepareStatement(SqlConstants.QUERY_ALL_DICT_SQL);
 		ResultSet rst = pst.executeQuery();
+		List<FileInfo> infoList = new ArrayList<>();
 		while (rst.next()) {
+			FileInfo info = new FileInfo();
+
+			// system name
 			String systemName = rst.getString(1);
+			info.setSystemName(systemName);
+
+			// dict name
 			String dictName = rst.getString(2);
+			info.setFileName(dictName);
+
+			// timestamp
 			String lastModifyTime = rst.getString(3);
-			System.out.println(systemName + "\t" + dictName + "\t" + lastModifyTime);
+			Timestamp timeStamp = null;
+			if (!StringUtils.isEmptyOrWhitespaceOnly(lastModifyTime)) {
+				timeStamp = Timestamp.valueOf(lastModifyTime);
+			}
+			info.setLastModifyTime(timeStamp);
+
+			// file size
+			String size = rst.getString(4);
+			if (!StringUtils.isEmptyOrWhitespaceOnly(size)) {
+				info.setSize(Long.valueOf(size));
+			} else {
+				info.setSize(0);
+			}
+
+			// update interval
+			String updateInterval = rst.getString(5);
+			info.setUpdateInterval(Integer.valueOf(updateInterval));
+
+			// print
+			System.out.println(info.toString());
+
+			// add into list
+			infoList.add(info);
 		}
-		return null;
+		return infoList;
 	}
 
 	/**

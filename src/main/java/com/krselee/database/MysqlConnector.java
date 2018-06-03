@@ -25,11 +25,17 @@ public class MysqlConnector {
 		logger = LogManager.getLogger(MysqlConnector.class);
 	}
 
+	/**
+	 * 获取一个数据库连接
+	 */
 	public Connection getConnect() {
 		manager = new MysqlManager();
 		return manager.getConnect();
 	}
 
+	/**
+	 * 关闭数据库连接
+	 */
 	public void close() {
 		if (manager != null) {
 			manager.close();

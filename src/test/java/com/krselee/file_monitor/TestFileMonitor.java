@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,6 +35,11 @@ public class TestFileMonitor {
 	public void testGetDictInfo() throws SQLException {
 		MysqlConnector connector = new MysqlConnector();
 		Connection conn = connector.getConnect();
-		fileMonitor.getDbFileInfo("", conn);
+		fileMonitor.getDbFileInfo(conn);
+		connector.close();
+	}
+
+	@After
+	public void tearDown() {
 	}
 }
