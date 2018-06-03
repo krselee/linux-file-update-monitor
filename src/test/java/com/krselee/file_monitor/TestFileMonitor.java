@@ -39,6 +39,11 @@ public class TestFileMonitor {
 		connector.close();
 	}
 
+	@Test
+	public void testCheckFileUpdate() {
+		fileMonitor.checkFileUpdate();
+	}
+
 	@After
 	public void tearDown() {
 	}

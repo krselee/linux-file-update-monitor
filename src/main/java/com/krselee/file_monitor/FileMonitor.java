@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.krselee.beans.FileInfo;
+import com.krselee.database.MysqlConnector;
 import com.krselee.utils.ConfUtil;
 import com.krselee.utils.SqlConstants;
 import com.mysql.cj.core.MysqlType;
@@ -43,6 +44,36 @@ public class FileMonitor {
 		String customizedPath = "conf/log4j.properties";
 		System.setProperty("log4j.configuration", customizedPath);
 		logger = LogManager.getLogger(FileMonitor.class);
+	}
+
+	/**
+	 * check file update state is right
+	 */
+	public void checkFileUpdate() {
+		MysqlConnector connector = new MysqlConnector();
+
+		try {
+			// get files to check
+			List<FileInfo> infoList = getDbFileInfo(connector.getConnect());
+			String basePath = confUtil.getProperty("base_path");
+
+			for (FileInfo fileInfo : infoList) {
+				String path = basePath + File.separator + fileInfo.getSystemName() + File.separator
+						+ fileInfo.getFileName();
+				FileInfo compareInfo = getFileInfo(path);
+
+				if (compareInfo == null) {
+					logger.warn("file[" + fileInfo.getFileName() + "] is not exist.");
+					continue;
+				}
+
+				System.out.println(compareInfo.toString());
+			}
+		} catch (SQLException | IOException e) {
+			logger.warn(e);
+		}
+
+		connector.close();
 	}
 
 	/**
