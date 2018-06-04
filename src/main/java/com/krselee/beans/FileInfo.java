@@ -17,6 +17,8 @@ public class FileInfo {
 
 	private int updateInterval;
 
+	private String warningMessage;
+
 	public String getFileName() {
 		return fileName;
 	}
@@ -55,6 +57,14 @@ public class FileInfo {
 
 	public void setUpdateInterval(int updateInterval) {
 		this.updateInterval = updateInterval;
+	}
+
+	public String getWarningMessage() {
+		return warningMessage;
+	}
+
+	public void setWarningMessage(String warningMessage) {
+		this.warningMessage = warningMessage;
 	}
 
 	public String toString() {

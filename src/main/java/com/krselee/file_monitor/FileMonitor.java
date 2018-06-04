@@ -39,6 +39,8 @@ public class FileMonitor {
 
 	private static ConfUtil confUtil = new ConfUtil();
 
+	private List<FileInfo> warnFileList;
+
 	static {
 		// log4j
 		String customizedPath = "conf/log4j.properties";
@@ -46,10 +48,19 @@ public class FileMonitor {
 		logger = LogManager.getLogger(FileMonitor.class);
 	}
 
+	public FileMonitor() {
+		warnFileList = new ArrayList<>();
+	}
+
+	public void reset() {
+		warnFileList.clear();
+	}
+
 	/**
 	 * check file update state is right
 	 */
 	public void checkFileUpdate() {
+		// use database to compare file state
 		MysqlConnector connector = new MysqlConnector();
 
 		try {
@@ -63,17 +74,25 @@ public class FileMonitor {
 				FileInfo compareInfo = getFileInfo(path);
 
 				if (compareInfo == null) {
+					// collect waring file
 					logger.warn("file[" + fileInfo.getFileName() + "] is not exist.");
+					warnFileList.add(fileInfo);
 					continue;
 				}
-
-				System.out.println(compareInfo.toString());
+				checkFileState(fileInfo, compareInfo);
 			}
 		} catch (SQLException | IOException e) {
 			logger.warn(e);
 		}
 
 		connector.close();
+
+		// 报警
+		if (warnFileList.size() > 0) {
+			sendWarningMessage();
+		}
+
+		reset();
 	}
 
 	/**
@@ -143,12 +162,45 @@ public class FileMonitor {
 			info.setUpdateInterval(Integer.valueOf(updateInterval));
 
 			// print
-			System.out.println(info.toString());
+			logger.info(info.toString());
 
 			// add into list
 			infoList.add(info);
 		}
 		return infoList;
+	}
+
+	/**
+	 * check file update time and size
+	 * 
+	 * @return: true if state is right, false if state is wrong
+	 */
+	private boolean checkFileState(FileInfo oldInfo, FileInfo compareInfo) {
+		int interval = oldInfo.getUpdateInterval();
+		Timestamp oldUpdateTime = oldInfo.getLastModifyTime();
+		Timestamp newUpdateTime = compareInfo.getLastModifyTime();
+
+		long diffMinute = (newUpdateTime.getTime() - oldUpdateTime.getTime()) / (1000 * 60);
+
+		if (interval < diffMinute) {
+			logger.info("time diff is [" + diffMinute + "], more than setting [" + interval + "], old time is ["
+					+ oldInfo.getLastModifyTime().toString() + "], new time is ["
+					+ compareInfo.getLastModifyTime().toString() + "]");
+			warnFileList.add(compareInfo);
+			return false;
+		}
+
+		long oldSize = oldInfo.getSize();
+		long newSize = compareInfo.getSize();
+		double ratio = Math.abs((newSize + 1) / (double) (oldSize + 1));
+		if (ratio > 0.5) {
+			logger.info("size diff is [" + (newSize - oldSize) + "], old size[" + oldSize + "], new size[" + newSize
+					+ "], diff ratio[" + ratio + "]");
+			warnFileList.add(compareInfo);
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -176,5 +228,9 @@ public class FileMonitor {
 		default:
 			break;
 		}
+	}
+
+	private void sendWarningMessage() {
+
 	}
 }

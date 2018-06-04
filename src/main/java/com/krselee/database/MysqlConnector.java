@@ -78,8 +78,8 @@ public class MysqlConnector {
 
 		public void close() {
 			try {
-				conn.close();
 				pst.close();
+				conn.close();
 			} catch (SQLException e) {
 				logger.warn("close mysql connector failed!", e);
 				e.printStackTrace();
